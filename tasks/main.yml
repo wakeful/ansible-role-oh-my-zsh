@@ -1,0 +1,33 @@
+---
+- name: install required packages
+  become: yes
+  become_method: sudo
+  become_user: root
+  pkgng: name={{ item }} state=present
+  with_items:
+    - git
+    - zsh
+- name: install Oh-My-Zsh
+  git: depth=1 dest=~/.oh-my-zsh
+       repo=https://github.com/robbyrussell/oh-my-zsh.git
+- name: create default .zshrc
+  copy: dest=~/.zshrc src=~/.oh-my-zsh/templates/zshrc.zsh-template
+- name: create zsh custom folder
+  file: path={{ oh_my_zsh_custom }}/plugins state=directory
+- name: set new theme
+  lineinfile: dest=~/.zshrc regexp="^ZSH_THEME="
+              line='ZSH_THEME="{{oh_my_zsh_theme}}"'
+- name: set new custom folder
+  lineinfile: dest=~/.zshrc regexp="^# ZSH_CUSTOM="
+              line='ZSH_CUSTOM="{{oh_my_zsh_custom}}"'
+- name: current user name
+  command: whoami
+  register: sshusername
+- name: locate zsh binary
+  command: whereis -bq zsh
+  register: whereiszsh
+- name: change current user shell to zsh
+  become: yes
+  become_method: sudo
+  become_user: root
+  user: name={{ sshusername.stdout }} shell={{ whereiszsh.stdout }}
